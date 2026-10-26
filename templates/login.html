@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block title %}Sign In - AI Clinical Trial Risk Screening{% endblock %}
+
+{% block content %}
+<div class="login-page-wrapper">
+    <div class="auth-card">
+        <div class="auth-card-header">
+            <div class="auth-icon-circle">
+                <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <h4 class="auth-title">Clinical Reviewer Sign In</h4>
+            <p class="auth-subtitle">Explainable AI Clinical Decision Support System (CDSS)</p>
+        </div>
+
+        <div class="auth-card-body">
+            <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-id-badge text-primary me-1"></i> Reviewer Username</span>
+                        <span class="text-muted small" style="font-size: 0.75rem;">Authorized Personnel</span>
+                    </label>
+                    <div class="input-group-custom">
+                        <i class="fa-solid fa-user input-icon-prefix"></i>
+                        <input type="text" id="username" name="username" class="form-control-custom" value="dr_smith" required placeholder="Enter username" autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label d-flex justify-content-between align-items-center">
+                        <span><i class="fa-solid fa-key text-primary me-1"></i> Security Password</span>
+                        <span class="text-muted small" style="font-size: 0.75rem;">Encrypted</span>
+                    </label>
+                    <div class="input-group-custom">
+                        <i class="fa-solid fa-lock input-icon-prefix"></i>
+                        <input type="password" id="password" name="password" class="form-control-custom" value="password123" required placeholder="Enter password" autocomplete="current-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary-gradient w-100">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Sign In to Reviewer Portal</span>
+                </button>
+            </form>
+
+            <div class="demo-badge-container">
+                <div class="fw-semibold text-secondary mb-1">
+                    <i class="fa-solid fa-bolt text-warning me-1"></i> Quick Demo Access
+                </div>
+                <div>
+                    Reviewer: <span class="demo-chip">dr_smith</span> &nbsp;|&nbsp; Pass: <span class="demo-chip">password123</span>
+                </div>
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none" onclick="fillDemo()" style="font-size: 0.78rem;">
+                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> Click here to auto-fill demo credentials
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillDemo() {
+    document.getElementById('username').value = 'dr_smith';
+    document.getElementById('password').value = 'password123';
+}
+</script>
+{% endblock %}

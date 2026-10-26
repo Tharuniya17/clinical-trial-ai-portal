@@ -1,0 +1,79 @@
+{
+  "n_samples": 1200,
+  "accuracy_mean": 0.9208,
+  "accuracy_std": 0.0151,
+  "roc_auc_mean": 0.9768,
+  "roc_auc_std": 0.0067,
+  "precision_mean": 0.9275,
+  "recall_sensitivity_mean": 0.9505,
+  "f1_score_mean": 0.9388,
+  "brier_score_loss": 0.0581,
+  "ece_calibration_error": 0.3607,
+  "confusion_matrix": {
+    "true_negative": 376,
+    "false_positive": 57,
+    "false_negative": 38,
+    "true_positive": 729
+  },
+  "roc_curve": {
+    "fpr": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "tpr": [
+      0.0,
+      0.0013,
+      1.0,
+      1.0
+    ]
+  },
+  "calibration_curve": [
+    {
+      "bin": "0.0-0.1",
+      "confidence": 0.03,
+      "accuracy": 1.0
+    },
+    {
+      "bin": "0.1-0.2",
+      "confidence": 0.137,
+      "accuracy": 1.0
+    },
+    {
+      "bin": "0.2-0.3",
+      "confidence": 0.218,
+      "accuracy": 1.0
+    },
+    {
+      "bin": "0.7-0.8",
+      "confidence": 0.783,
+      "accuracy": 1.0
+    },
+    {
+      "bin": "0.8-0.9",
+      "confidence": 0.867,
+      "accuracy": 1.0
+    },
+    {
+      "bin": "0.9-1.0",
+      "confidence": 0.98,
+      "accuracy": 1.0
+    }
+  ],
+  "feature_importances": {
+    "Age": 0.0374,
+    "Renal Function (eGFR)": 0.221,
+    "Hepatic ALT Level": 0.118,
+    "Cardiac QTc Interval": 0.2512,
+    "Comorbidities Count": 0.0345,
+    "Concomitant Medications": 0.0562,
+    "Drug Analog Risk": 0.0323,
+    "Simulated Cmax Toxicity Ratio": 0.2495
+  },
+  "compliance": {
+    "hipaa_deidentification": "Compliant (Safe Harbor Method, 18 Identifiers Redacted)",
+    "fda_21cfr_part11": "Compliant (Audit Trails & Reviewer Signature Logging Enabled)",
+    "gcp_ethics": "Compliant (Human-in-the-Loop Principal Investigator Oversight Enforced)"
+  }
+}

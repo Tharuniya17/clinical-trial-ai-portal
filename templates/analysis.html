@@ -1,0 +1,432 @@
+{% extends "layout.html" %}
+{% block title %}Analysis #{{ eval_rec.id }} - Reviewer Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard</a>
+        <h3 class="fw-bold mb-0">Risk Analysis & SHAP Decision Support</h3>
+        <p class="text-muted mb-0">Trial: <strong>{{ eval_rec.trial_code }}</strong> | Volunteer: <strong>{{ eval_rec.volunteer_code }}</strong> | Drug: <strong>{{ eval_rec.drug_name }}</strong></p>
+    </div>
+    <div class="text-end">
+        <span class="badge bg-dark fs-6">Evaluation #{{ eval_rec.id }}</span><br>
+        <small class="text-muted">{{ eval_rec.evaluated_at }}</small>
+    </div>
+</div>
+
+<!-- Header Summary Card -->
+<div class="row g-3 mb-4">
+    <!-- Overall Risk Score Card -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 bg-white text-center h-100 border-top border-4 {% if eval_rec.overall_risk_score >= 0.65 %}border-danger{% elif eval_rec.overall_risk_score >= 0.35 %}border-warning{% else %}border-success{% endif %}">
+            <span class="text-muted fw-semibold uppercase small">Overall Individualized Risk (R)</span>
+            <h1 class="display-3 fw-bold my-2 {% if eval_rec.overall_risk_score >= 0.65 %}text-danger{% elif eval_rec.overall_risk_score >= 0.35 %}text-warning{% else %}text-success{% endif %}">
+                {{ (eval_rec.overall_risk_score * 100)|round(1) }}%
+            </h1>
+            <div>
+                {% if eval_rec.overall_risk_score >= 0.65 %}
+                    <span class="badge risk-badge-high fs-6 px-3 py-2"><i class="fa-solid fa-circle-exclamation me-1"></i> High Risk Flag</span>
+                {% elif eval_rec.overall_risk_score >= 0.35 %}
+                    <span class="badge risk-badge-medium fs-6 px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Moderate Risk Flag</span>
+                {% else %}
+                    <span class="badge risk-badge-low fs-6 px-3 py-2"><i class="fa-solid fa-circle-check me-1"></i> Low Risk Flag</span>
+                {% endif %}
+            </div>
+            <p class="small text-muted mt-3 mb-0">Formula: <code>R = 0.40(rA) + 0.35(rB) + 0.25(rC)</code></p>
+        </div>
+    </div>
+
+    <!-- Confidence & Calibration Card -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 bg-white text-center h-100 border-top border-info border-4">
+            <span class="text-muted fw-semibold uppercase small">Prediction Confidence & Calibration</span>
+            <h2 class="display-4 fw-bold text-info my-2">{{ (eval_rec.confidence_score * 100)|round(1) }}%</h2>
+            <div>
+                <span class="badge bg-info text-dark fs-6 px-3 py-2">{{ eval_rec.confidence_flag }}</span>
+            </div>
+            {% if 'Low' in eval_rec.confidence_flag %}
+            <div class="alert alert-warning p-2 mt-3 small text-start mb-0">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> <strong>Low Confidence Warning:</strong> Significant variance detected between clinical history and drug similarity pillars. Manual review required.
+            </div>
+            {% else %}
+            <p class="small text-muted mt-3 mb-0"><i class="fa-solid fa-circle-check text-success me-1"></i> Pillar scores show high concordance across domain engines.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Reviewer Decision Status Card -->
+    <div class="col-md-4">
+        <div class="card card-custom p-4 bg-white text-center h-100 border-top border-primary border-4">
+            <span class="text-muted fw-semibold uppercase small">Current Human Reviewer Status</span>
+            <div class="my-3">
+                {% if eval_rec.reviewer_decision == 'Proceed' %}
+                    <h3 class="fw-bold text-success"><i class="fa-solid fa-circle-check me-2"></i>Proceed</h3>
+                    <span class="badge bg-success">Approved for Enrollment</span>
+                {% elif eval_rec.reviewer_decision == 'Proceed with Modified Protocol' %}
+                    <h3 class="fw-bold text-warning"><i class="fa-solid fa-pen-to-square me-2"></i>Modified Protocol</h3>
+                    <span class="badge bg-warning text-dark">Approved with Enhanced Monitoring</span>
+                {% elif eval_rec.reviewer_decision == 'Flagged for Exclusion' %}
+                    <h3 class="fw-bold text-danger"><i class="fa-solid fa-ban me-2"></i>Excluded</h3>
+                    <span class="badge bg-danger">Flagged / Volunteer Excluded</span>
+                {% else %}
+                    <h3 class="fw-bold text-secondary"><i class="fa-solid fa-hourglass-start me-2"></i>Pending Review</h3>
+                    <span class="badge bg-secondary">Awaiting Investigator Decision</span>
+                {% endif %}
+            </div>
+            <p class="small text-muted mb-0">Suggested Protocol Level:<br><strong>{{ eval_rec.suggested_monitoring }}</strong></p>
+        </div>
+    </div>
+</div>
+
+<!-- Three Pillar Scores Breakdown -->
+<div class="row g-3 mb-4">
+    <!-- Pillar A -->
+    <div class="col-md-4">
+        <div class="card card-custom p-3 bg-white pillar-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-heart-pulse me-1"></i> Pillar A: Clinical Risk</h6>
+                <span class="badge bg-primary fs-6">{{ (eval_rec.pillar_a_score * 100)|round(1) }}%</span>
+            </div>
+            <div class="progress mb-2" style="height: 8px;">
+                <div class="progress-bar bg-primary" style="width: {{ eval_rec.pillar_a_score * 100 }}%"></div>
+            </div>
+            <small class="text-muted">
+                <strong>Key Indicators:</strong> eGFR: {{ eval_rec.egfr }}, ALT: {{ eval_rec.alt_u_l }} U/L, QTc: {{ eval_rec.qtc_ms }} ms, Meds: {{ eval_rec.current_medications or 'None' }}
+            </small>
+        </div>
+    </div>
+    <!-- Pillar B -->
+    <div class="col-md-4">
+        <div class="card card-custom p-3 bg-white pillar-card" style="border-top-color: var(--secondary-teal);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0 text-teal" style="color: var(--secondary-teal);"><i class="fa-solid fa-pills me-1"></i> Pillar B: Drug Similarity</h6>
+                <span class="badge bg-info text-dark fs-6">{{ (eval_rec.pillar_b_score * 100)|round(1) }}%</span>
+            </div>
+            <div class="progress mb-2" style="height: 8px;">
+                <div class="progress-bar bg-info" style="width: {{ eval_rec.pillar_b_score * 100 }}%"></div>
+            </div>
+            <small class="text-muted">
+                <strong>Class & Pathway:</strong> {{ eval_rec.chemical_class }} | Pathway: {{ eval_rec.metabolic_pathway }}
+            </small>
+        </div>
+    </div>
+    <!-- Pillar C -->
+    <div class="col-md-4">
+        <div class="card card-custom p-3 bg-white pillar-card" style="border-top-color: #8e44ad;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0" style="color: #8e44ad;"><i class="fa-solid fa-wave-square me-1"></i> Pillar C: Digital Twin Simulation</h6>
+                <span class="badge text-white fs-6" style="background-color: #8e44ad;">{{ (eval_rec.pillar_c_score * 100)|round(1) }}%</span>
+            </div>
+            <div class="progress mb-2" style="height: 8px;">
+                <div class="progress-bar" style="width: {{ eval_rec.pillar_c_score * 100 }}%; background-color: #8e44ad;"></div>
+            </div>
+            <small class="text-muted">
+                <strong>PK Metrics:</strong> Cmax: {{ pk_sim_data.pk_parameters.Cmax_mg_L }} mg/L, Half-life: {{ pk_sim_data.pk_parameters.half_life_hours }}h, Clearance: {{ pk_sim_data.pk_parameters.clearance_L_h }} L/h
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: Enhanced Drug-Drug Interactions (DDI) & CYP Pharmacogenomics Matrix -->
+<div class="row g-3 mb-4">
+    <!-- Pairwise DDI Matrix (Module 1 Expansion) -->
+    <div class="col-md-6">
+        <div class="card card-custom p-4 bg-white h-100 border-start border-danger border-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-capsules text-danger me-2"></i>Polypharmacy DDI Matrix</h5>
+                <span class="badge bg-danger">{{ pillar_a.ddi_alerts | length }} High-Risk Pairs</span>
+            </div>
+            <p class="text-muted small">Pairwise interaction screening across volunteer's concurrent medications.</p>
+            <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                <table class="table table-sm table-hover align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Drug Pair</th>
+                            <th>Severity</th>
+                            <th>Mechanism & Clinical Effect</th>
+                            <th>Mitigation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ddi in pillar_a.ddi_alerts %}
+                        <tr>
+                            <td><strong>{{ ddi.drug_pair }}</strong></td>
+                            <td>
+                                {% if ddi.severity in ['Critical', 'Major'] %}
+                                    <span class="badge bg-danger">{{ ddi.severity }}</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">{{ ddi.severity }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-dark">{{ ddi.mechanism }}</strong><br>
+                                <span class="text-muted">{{ ddi.clinical_effect }}</span>
+                            </td>
+                            <td><em class="text-primary">{{ ddi.mitigation }}</em></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-muted text-center py-3"><i class="fa-solid fa-circle-check text-success me-1"></i> No major pairwise medication interactions detected.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CYP Enzyme Inhibitor/Inducer & PGx Lookup (Module 2 Expansion) -->
+    <div class="col-md-6">
+        <div class="card card-custom p-4 bg-white h-100 border-start border-info border-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-dna text-info me-2"></i>CYP Pathway & Inhibitor/Inducer Lookup</h5>
+                <span class="badge bg-info text-dark">{{ pillar_b.cyp_interactions | length }} Metabolic Flags</span>
+            </div>
+            <p class="text-muted small">Evaluates investigational drug pathway (<strong>{{ eval_rec.metabolic_pathway }}</strong>) against CYP inhibitors/inducers & PGx genotypes.</p>
+            <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                <table class="table table-sm table-hover align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Enzyme</th>
+                            <th>Agent / Med</th>
+                            <th>Interaction Type</th>
+                            <th>Expected Effect & Recommendation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cyp in pillar_b.cyp_interactions %}
+                        <tr>
+                            <td><span class="badge bg-dark">{{ cyp.enzyme }}</span></td>
+                            <td><strong>{{ cyp.medication }}</strong></td>
+                            <td>
+                                {% if 'Inhibitor' in cyp.type %}
+                                    <span class="badge bg-danger">{{ cyp.type }}</span>
+                                {% elif 'Inducer' in cyp.type %}
+                                    <span class="badge bg-warning text-dark">{{ cyp.type }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ cyp.type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-dark">{{ cyp.effect }}</span><br>
+                                <strong class="text-primary">Rec: {{ cyp.recommendation }}</strong>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-muted text-center py-3"><i class="fa-solid fa-circle-check text-success me-1"></i> No CYP enzyme inhibitor/inducer conflicts detected.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Module 5: SHAP Explainability & Top Drivers -->
+<div class="row g-3 mb-4">
+    <div class="col-md-7">
+        <div class="card card-custom p-4 bg-white h-100">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Module 5: SHAP Feature Risk Contribution</h5>
+            <p class="text-muted small">Quantifies exact positive (risk increasing) and negative (risk protective) feature impact on decision</p>
+            <div id="shapPlot" style="height: 340px;"></div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card card-custom p-4 bg-white h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-ol text-danger me-2"></i>Major Risk & Protective Drivers</h5>
+            
+            <h6 class="fw-bold text-danger mb-2"><i class="fa-solid fa-arrow-up-right-dots me-1"></i> Top Risk Drivers (Increases Risk)</h6>
+            <ul class="list-group mb-4">
+                {% for d in shap_data.top_risk_drivers %}
+                <li class="list-group-item list-group-item-danger d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ d.feature }}</strong>
+                        <br><small class="text-muted">Observed Value: {{ d.value }}</small>
+                    </div>
+                    <span class="badge bg-danger fs-6">+{{ (d.shap_value * 100)|round(1) }}%</span>
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted small">No significant risk drivers flagged.</li>
+                {% endfor %}
+            </ul>
+
+            <h6 class="fw-bold text-success mb-2"><i class="fa-solid fa-arrow-down-right-dots me-1"></i> Top Protective Factors (Reduces Risk)</h6>
+            <ul class="list-group">
+                {% for p in shap_data.top_protective_factors %}
+                <li class="list-group-item list-group-item-success d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ p.feature }}</strong>
+                        <br><small class="text-muted">Observed Value: {{ p.value }}</small>
+                    </div>
+                    <span class="badge bg-success fs-6">{{ (p.shap_value * 100)|round(1) }}%</span>
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted small">No protective factors flagged.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Module 3: Digital Twin PK Time-Concentration Simulation Plot -->
+<div class="card card-custom p-4 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-chart-line text-purple me-2" style="color: #8e44ad;"></i>Module 3: Digital Twin Pharmacokinetic (PK) Simulation</h5>
+            <p class="text-muted small mb-0">Simulated 48-Hour Plasma Concentration C(t) versus Minimum Toxic Threshold (MTC)</p>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border">Cmax: {{ pk_sim_data.pk_parameters.Cmax_mg_L }} mg/L</span>
+            <span class="badge bg-light text-dark border">MTC Threshold: {{ pk_sim_data.pk_parameters.mtc_threshold_mg_L }} mg/L</span>
+        </div>
+    </div>
+    <div id="pkSimPlot" style="height: 320px;"></div>
+</div>
+
+<!-- Module 7: Human Reviewer Decision & Audit Form -->
+<div class="row g-3 mb-4">
+    <div class="col-md-7">
+        <div class="card card-custom p-4 bg-white border-top border-primary border-4 shadow-sm">
+            <h5 class="fw-bold mb-2"><i class="fa-solid fa-user-doctor text-primary me-2"></i>Module 7: Human-in-the-Loop Reviewer Decision</h5>
+            <p class="text-muted small">As specified by trial protocol ethics, the final enrollment decision remains strictly with the human investigator.</p>
+            
+            <form id="decisionForm">
+                <input type="hidden" id="evalId" value="{{ eval_rec.id }}">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Select Decision Action</label>
+                    <select id="reviewerDecision" class="form-select form-select-lg" required>
+                        <option value="Proceed" {% if eval_rec.reviewer_decision == 'Proceed' %}selected{% endif %}>✅ Proceed with Trial Enrollment (Standard Monitoring)</option>
+                        <option value="Proceed with Modified Protocol" {% if eval_rec.reviewer_decision == 'Proceed with Modified Protocol' %}selected{% endif %}>⚠️ Proceed with Modified Protocol / Enhanced Monitoring</option>
+                        <option value="Flagged for Exclusion" {% if eval_rec.reviewer_decision == 'Flagged for Exclusion' %}selected{% endif %}>🚫 Flag for Exclusion / Reject Volunteer</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Investigator Clinical Notes & Rationale</label>
+                    <textarea id="reviewerNotes" class="form-control" rows="3" placeholder="Enter clinical reasoning, monitoring schedule adjustments, or exclusion grounds...">{{ eval_rec.reviewer_notes or '' }}</textarea>
+                </div>
+
+                <button type="button" onclick="submitReviewerDecision()" class="btn btn-primary px-4 py-2 fw-bold">
+                    <i class="fa-solid fa-check-double me-1"></i> Submit & Record Clinical Decision
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card card-custom p-4 bg-white shadow-sm h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-clock-rotate-left text-secondary me-2"></i>Audit History Trail</h5>
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-sm small table-striped">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Decision</th>
+                            <th>Reviewer</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTrailBody">
+                        {% for a in audit_trail %}
+                        <tr>
+                            <td>{{ a.timestamp }}</td>
+                            <td><span class="badge bg-secondary">{{ a.action }}</span></td>
+                            <td><strong>{{ a.new_status }}</strong></td>
+                            <td>{{ a.reviewer_name or 'System' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-muted text-center py-2">No audit entries found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Render SHAP Plotly Chart
+const shapData = {{ shap_data.feature_contributions | tojson }};
+const featureNames = shapData.map(d => d.feature).reverse();
+const shapValues = shapData.map(d => d.shap_value * 100).reverse();
+const barColors = shapValues.map(v => v > 0 ? '#e74c3c' : '#2ecc71');
+
+const shapTrace = {
+    x: shapValues,
+    y: featureNames,
+    type: 'bar',
+    orientation: 'h',
+    marker: { color: barColors }
+};
+
+const shapLayout = {
+    margin: { l: 180, r: 30, t: 20, b: 40 },
+    xaxis: { title: 'SHAP Risk Contribution (%)' },
+    yaxis: { automargin: true }
+};
+
+Plotly.newPlot('shapPlot', [shapTrace], shapLayout, {responsive: true});
+
+// Render PK Digital Twin Plotly Chart
+const timePoints = {{ pk_sim_data.time_points | tojson }};
+const concCurve = {{ pk_sim_data.concentration_curve | tojson }};
+const mtcVal = {{ pk_sim_data.pk_parameters.mtc_threshold_mg_L }};
+
+const pkTrace = {
+    x: timePoints,
+    y: concCurve,
+    mode: 'lines',
+    name: 'Simulated C(t) (mg/L)',
+    line: { color: '#8e44ad', width: 3 }
+};
+
+const mtcTrace = {
+    x: [0, Math.max(...timePoints)],
+    y: [mtcVal, mtcVal],
+    mode: 'lines',
+    name: 'MTC Threshold (' + mtcVal + ' mg/L)',
+    line: { color: '#e74c3c', width: 2, dash: 'dash' }
+};
+
+const pkLayout = {
+    margin: { l: 50, r: 30, t: 20, b: 40 },
+    xaxis: { title: 'Time Post-Dose (Hours)' },
+    yaxis: { title: 'Plasma Concentration (mg/L)' },
+    legend: { orientation: 'h', y: 1.15 }
+};
+
+Plotly.newPlot('pkSimPlot', [pkTrace, mtcTrace], pkLayout, {responsive: true});
+
+// Reviewer Decision API Call
+function submitReviewerDecision() {
+    const evalId = document.getElementById('evalId').value;
+    const decision = document.getElementById('reviewerDecision').value;
+    const notes = document.getElementById('reviewerNotes').value;
+
+    fetch('/api/reviewer-decision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            evaluation_id: evalId,
+            decision: decision,
+            notes: notes
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            alert('Reviewer decision recorded successfully in audit trail!');
+            location.reload();
+        } else {
+            alert('Error recording decision: ' + (data.error || 'Unknown error'));
+        }
+    });
+}
+</script>
+{% endblock %}

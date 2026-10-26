@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block title %}Run AI Risk Screening - Explainable AI Engine{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card card-custom p-4 bg-white shadow-sm border-top border-warning border-4">
+            <div class="d-flex align-items-center mb-3">
+                <i class="fa-solid fa-bolt text-warning fs-1 me-3"></i>
+                <div>
+                    <h4 class="fw-bold mb-0">Execute Multi-Pillar AI Risk Screening</h4>
+                    <p class="text-muted mb-0">Fuses Physiology (Pillar A), Drug Class Analogs (Pillar B), and PK Digital Twin Simulation (Pillar C)</p>
+                </div>
+            </div>
+            <hr>
+
+            <form method="POST" action="{{ url_for('run_evaluation') }}">
+                <div class="mb-4">
+                    <label class="form-label fw-bold"><i class="fa-solid fa-vial me-1 text-primary"></i> 1. Select Clinical Trial Protocol</label>
+                    <select name="trial_id" class="form-select form-select-lg" required>
+                        {% for t in trials %}
+                        <option value="{{ t.id }}">{{ t.trial_code }} - {{ t.trial_name }} ({{ t.phase }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold"><i class="fa-solid fa-user-check me-1 text-primary"></i> 2. Select Registered Volunteer / Patient</label>
+                    <select name="volunteer_id" class="form-select form-select-lg" required>
+                        {% for v in volunteers %}
+                        <option value="{{ v.id }}">{{ v.volunteer_code }} ({{ v.age }}y {{ v.gender }}, eGFR: {{ v.egfr }}, QTc: {{ v.qtc_ms }}ms, Meds: {{ v.current_medications or 'None' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold"><i class="fa-solid fa-capsules me-1 text-primary"></i> 3. Select Investigational Drug Candidate</label>
+                    <select name="drug_id" class="form-select form-select-lg" required>
+                        {% for d in drugs %}
+                        <option value="{{ d.id }}">{{ d.drug_name }} ({{ d.chemical_class }}, Pathway: {{ d.metabolic_pathway }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="alert alert-light border p-3">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-circle-info me-1 text-info"></i> Pipeline Process Summary</h6>
+                    <small class="text-muted d-block">
+                        1. <strong>Eligibility & Clinical Risk (Pillar A):</strong> eGFR, ALT/AST, QTc, comorbidities, polypharmacy.<br>
+                        2. <strong>Drug Similarity (Pillar B):</strong> Chemical structure class, approved/recalled analogs, CYP pathway.<br>
+                        3. <strong>Digital Twin Simulation (Pillar C):</strong> 48h ADME concentration curve, Cmax vs Toxic MTC threshold.<br>
+                        4. <strong>Gradient Boosting & Fusion:</strong> R = 0.40 × rA + 0.35 × rB + 0.25 × rC.<br>
+                        5. <strong>SHAP Explainability & Confidence Calibration:</strong> Positive/Negative feature impact + Concordance check.
+                    </small>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-warning btn-lg fw-bold text-dark py-3">
+                        <i class="fa-solid fa-microchip me-2"></i> Compute Multi-Pillar Risk & Generate SHAP Analysis
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

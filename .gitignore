@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+cloudflared.exe
+ngrok.exe
+tunnel.py
+start_permanent_url.bat
+start_public_url.bat
+start_all.bat
+.env
+.DS_Store

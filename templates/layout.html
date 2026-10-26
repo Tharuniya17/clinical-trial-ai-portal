@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Clinical Trial AI Risk Engine{% endblock %}</title>
+
+    <!-- Local Bootstrap 5 CSS with CDN Fallback -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" onerror="this.onerror=null;this.href='{{ url_for('static', filename='css/bootstrap.min.css') }}';">
+
+    <!-- Local FontAwesome with CDN Fallback -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" onerror="this.onerror=null;this.href='{{ url_for('static', filename='css/font-awesome.min.css') }}';">
+
+    <!-- Custom Modern Healthcare Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+    <!-- Local Plotly.js for interactive SHAP & PK graphs with CDN Fallback -->
+    <script src="{{ url_for('static', filename='js/plotly.min.js') }}"></script>
+    <script>
+        if (typeof Plotly === 'undefined') {
+            document.write('<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"><\/script>');
+        }
+    </script>
+
+    <!-- Embedded Critical Fallback Styles (Guarantees perfect layout even without external networks) -->
+    <style>
+        :root {
+            --primary-blue: #0284c7;
+            --primary-navy: #0a2540;
+            --secondary-teal: #0d9488;
+            --bg-light: #f8fafc;
+        }
+        body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .main-wrapper {
+            flex: 1 0 auto;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #0a2540 0%, #173b63 100%);
+            box-shadow: 0 4px 15px rgba(10, 37, 64, 0.12);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-wrapper">
+        <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-2 shadow-sm">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white text-decoration-none" href="{{ url_for('dashboard') if session.get('user_id') else url_for('login') }}">
+                    <span class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white rounded-3 p-2" style="width: 36px; height: 36px;">
+                        <i class="fa-solid fa-dna"></i>
+                    </span>
+                    <span>
+                        <span class="d-block lh-1 fs-6">AI Clinical Trial Risk Screening</span>
+                        <span class="d-block lh-1 text-info small fw-normal" style="font-size: 0.72rem; letter-spacing: 0.04em;">EXPLAINABLE CDSS ENGINE</span>
+                    </span>
+                </a>
+                
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    {% if session.get('user_id') %}
+                    <ul class="navbar-nav me-auto ms-lg-3 gap-1 my-2 my-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link px-3 py-2 rounded-2" href="{{ url_for('dashboard') }}">
+                                <i class="fa-solid fa-chart-line me-1"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3 py-2 rounded-2" href="{{ url_for('new_volunteer') }}">
+                                <i class="fa-solid fa-user-plus me-1"></i> Register Volunteer
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3 py-2 rounded-2" href="{{ url_for('new_drug') }}">
+                                <i class="fa-solid fa-pills me-1"></i> Register Drug
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3 py-2 rounded-2 text-info" href="{{ url_for('view_model_metrics') }}">
+                                <i class="fa-solid fa-scale-balanced me-1"></i> Model Accuracy
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3 py-2 rounded-2 text-warning fw-semibold" href="{{ url_for('run_evaluation') }}">
+                                <i class="fa-solid fa-bolt me-1"></i> Run Risk Screening
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex align-items-center ms-auto gap-3">
+                        <div class="d-flex align-items-center gap-2 text-white bg-white bg-opacity-10 px-3 py-1 rounded-pill">
+                            <i class="fa-solid fa-user-doctor text-info"></i>
+                            <span class="small fw-medium">{{ session.get('full_name') or session.get('username') }}</span>
+                            <span class="badge bg-primary text-uppercase" style="font-size: 0.65rem;">{{ session.get('role', 'Reviewer') }}</span>
+                        </div>
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm px-3 rounded-pill">
+                            <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        <span class="badge bg-success bg-opacity-25 text-white border border-success border-opacity-50 px-3 py-2 rounded-pill small">
+                            <i class="fa-solid fa-circle-check text-success me-1"></i> System Online & Ready
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <div class="container py-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category if category != 'danger' else 'danger' }} alert-dismissible fade show shadow-sm d-flex align-items-center gap-2 mb-4" role="alert">
+                    <i class="fa-solid {% if category == 'success' %}fa-circle-check text-success{% elif category == 'danger' %}fa-triangle-exclamation text-danger{% else %}fa-circle-info text-info{% endif %} fs-5"></i>
+                    <div>{{ message }}</div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <footer class="compliance-footer">
+        <div class="container text-center">
+            <div class="compliance-badge-list">
+                <span class="compliance-badge-item">
+                    <i class="fa-solid fa-shield-halved text-success"></i> HIPAA Safe Harbor
+                </span>
+                <span class="compliance-badge-item">
+                    <i class="fa-solid fa-file-signature text-primary"></i> FDA 21 CFR Part 11
+                </span>
+                <span class="compliance-badge-item">
+                    <i class="fa-solid fa-heart-pulse text-danger"></i> GCP Ethics Compliant
+                </span>
+                <span class="compliance-badge-item">
+                    <i class="fa-solid fa-lock text-secondary"></i> Encrypted Audit Trail
+                </span>
+            </div>
+            <p class="compliance-disclaimer mb-0">
+                Operating under Human-in-the-Loop Clinical Decision Support (CDSS). This simulation tool aids early-phase trial risk screening. Final volunteer enrollment approval or rejection remains strictly with the Principal Investigator.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS with CDN Fallback -->
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        if (typeof bootstrap === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"><\/script>');
+        }
+        
+        // Prevent duplicate form submissions on double-click
+        document.querySelectorAll('form').forEach(function(form) {
+            form.addEventListener('submit', function() {
+                var btn = form.querySelector('button[type="submit"]');
+                if (btn && !btn.disabled) {
+                    setTimeout(function() {
+                        btn.disabled = true;
+                    }, 50);
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

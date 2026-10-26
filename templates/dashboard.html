@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+{% block title %}Dashboard - AI Clinical Trial Risk Engine{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Clinical Trial Risk Screening Dashboard</h3>
+        <p class="text-muted mb-0">Multi-Pillar Explainable AI Decision Support System</p>
+    </div>
+    <div>
+        <a href="{{ url_for('run_evaluation') }}" class="btn btn-warning fw-bold"><i class="fa-solid fa-bolt me-1"></i> New Risk Screening</a>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-primary border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small">Total Risk Evaluations</span>
+                    <h3 class="fw-bold mb-0 text-primary">{{ evaluations|length }}</h3>
+                </div>
+                <i class="fa-solid fa-file-medical fs-2 text-primary opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-danger border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small">High Risk Flagged</span>
+                    <h3 class="fw-bold mb-0 text-danger">
+                        {{ evaluations | selectattr('risk_category', 'equalto', 'High Risk') | list | length }}
+                    </h3>
+                </div>
+                <i class="fa-solid fa-triangle-exclamation fs-2 text-danger opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-warning border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small">Pending Review</span>
+                    <h3 class="fw-bold mb-0 text-warning">
+                        {{ evaluations | selectattr('reviewer_decision', 'equalto', 'Pending Review') | list | length }}
+                    </h3>
+                </div>
+                <i class="fa-solid fa-clock-rotate-left fs-2 text-warning opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-success border-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted small">Active Trials</span>
+                    <h3 class="fw-bold mb-0 text-success">{{ trials|length }}</h3>
+                </div>
+                <i class="fa-solid fa-vials fs-2 text-success opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Risk Evaluations Table -->
+<div class="card card-custom p-4 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>Recent Volunteer Risk Screenings</h5>
+        <a href="{{ url_for('run_evaluation') }}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-plus me-1"></i> Screen Volunteer</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Eval ID</th>
+                    <th>Volunteer</th>
+                    <th>Trial Protocol</th>
+                    <th>Drug Investigated</th>
+                    <th>Overall Risk (R)</th>
+                    <th>Pillar A / B / C</th>
+                    <th>Confidence</th>
+                    <th>Reviewer Decision</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in evaluations %}
+                <tr>
+                    <td><strong>#{{ ev.id }}</strong></td>
+                    <td>
+                        <span class="fw-bold">{{ ev.volunteer_code }}</span><br>
+                        <small class="text-muted">{{ ev.age }}y {{ ev.gender }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ ev.trial_code }}</span><br>
+                        <small>{{ ev.phase }}</small>
+                    </td>
+                    <td><span class="fw-semibold text-primary">{{ ev.drug_name }}</span></td>
+                    <td>
+                        {% if ev.overall_risk_score >= 0.65 %}
+                            <span class="badge risk-badge-high fs-6"><i class="fa-solid fa-circle-exclamation me-1"></i> {{ (ev.overall_risk_score * 100)|round(1) }}% (High)</span>
+                        {% elif ev.overall_risk_score >= 0.35 %}
+                            <span class="badge risk-badge-medium fs-6"><i class="fa-solid fa-triangle-exclamation me-1"></i> {{ (ev.overall_risk_score * 100)|round(1) }}% (Med)</span>
+                        {% else %}
+                            <span class="badge risk-badge-low fs-6"><i class="fa-solid fa-circle-check me-1"></i> {{ (ev.overall_risk_score * 100)|round(1) }}% (Low)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>A: {{ (ev.pillar_a_score * 100)|round(0) }}% | B: {{ (ev.pillar_b_score * 100)|round(0) }}% | C: {{ (ev.pillar_c_score * 100)|round(0) }}%</small>
+                    </td>
+                    <td>
+                        {% if 'Low' in ev.confidence_flag %}
+                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-triangle-exclamation me-1"></i> {{ (ev.confidence_score * 100)|round(0) }}%</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">{{ (ev.confidence_score * 100)|round(0) }}%</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ev.reviewer_decision == 'Proceed' %}
+                            <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i> Proceed</span>
+                        {% elif ev.reviewer_decision == 'Proceed with Modified Protocol' %}
+                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-pen-to-square me-1"></i> Modified Protocol</span>
+                        {% elif ev.reviewer_decision == 'Flagged for Exclusion' %}
+                            <span class="badge bg-danger"><i class="fa-solid fa-ban me-1"></i> Excluded</span>
+                        {% else %}
+                            <span class="badge bg-secondary"><i class="fa-solid fa-hourglass-start me-1"></i> Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('view_analysis', eval_id=ev.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fa-solid fa-chart-pie me-1"></i> Review SHAP
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">No risk evaluations run yet. Click "New Risk Screening" to evaluate a volunteer.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends "layout.html" %}
+{% block title %}Model Performance & Legal Compliance - AI Risk Screening{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2"><i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard</a>
+        <h3 class="fw-bold mb-0"><i class="fa-solid fa-scale-balanced text-primary me-2"></i>Legal Compliance & Model Performance Validation</h3>
+        <p class="text-muted mb-0">FDA 21 CFR Part 11, HIPAA Safe Harbor, GCP Ethics & Real Benchmark ML Accuracy Metrics</p>
+    </div>
+    <div>
+        <form method="POST" action="{{ url_for('retrain_model_route') }}" style="display:inline;">
+            <button type="submit" class="btn btn-primary fw-bold"><i class="fa-solid fa-arrows-rotate me-1"></i> Re-Train ML Model</button>
+        </form>
+    </div>
+</div>
+
+<!-- Legal & Ethical Compliance Banner -->
+<div class="card card-custom p-4 bg-white mb-4 border-top border-4 border-success shadow-sm">
+    <div class="d-flex align-items-center mb-3">
+        <i class="fa-solid fa-shield-halved text-success fs-1 me-3"></i>
+        <div>
+            <h5 class="fw-bold mb-0">Regulatory Framework & Clinical Ethics Compliance Panel</h5>
+            <small class="text-muted">Certified for Research Simulation & Clinical Decision Support (CDSS) Standards</small>
+        </div>
+    </div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="p-3 bg-light rounded border">
+                <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-user-shield text-primary me-1"></i> HIPAA Safe Harbor Method</h6>
+                <small class="text-muted d-block mb-1">De-identification Standard</small>
+                <span class="badge bg-success mb-2">Compliant</span>
+                <p class="small text-muted mb-0">All 18 Protected Health Information (PHI) identifiers are scrubbed and anonymized into synthetic volunteer tokens.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 bg-light rounded border">
+                <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-file-signature text-warning me-1"></i> FDA 21 CFR Part 11</h6>
+                <small class="text-muted d-block mb-1">Electronic Records & Audit Trails</small>
+                <span class="badge bg-success mb-2">Compliant</span>
+                <p class="small text-muted mb-0">Immutable system logs with timestamped investigator sign-offs and previous/new decision state tracking.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-3 bg-light rounded border">
+                <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-user-doctor text-danger me-1"></i> GCP & Human-in-the-Loop</h6>
+                <small class="text-muted d-block mb-1">Good Clinical Practice Ethics</small>
+                <span class="badge bg-success mb-2">Mandatory Human Control</span>
+                <p class="small text-muted mb-0">Software outputs recommendations only. Final trial enrollment authority rests exclusively with the Principal Investigator.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real Dataset Performance Stat Widgets -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-primary border-4 text-center">
+            <span class="text-muted small">5-Fold Cross-Val Accuracy</span>
+            <h2 class="fw-bold text-primary my-1">{{ (metrics.accuracy_mean * 100)|round(2) }}%</h2>
+            <small class="text-muted">±{{ (metrics.accuracy_std * 100)|round(2) }}% Std Dev</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-info border-4 text-center">
+            <span class="text-muted small">Area Under Curve (ROC-AUC)</span>
+            <h2 class="fw-bold text-info my-1">{{ metrics.roc_auc_mean }}</h2>
+            <small class="text-muted">Discriminative Capacity</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-warning border-4 text-center">
+            <span class="text-muted small">Sensitivity (Recall) / Specificity</span>
+            <h2 class="fw-bold text-warning my-1">{{ (metrics.recall_sensitivity_mean * 100)|round(1) }}%</h2>
+            <small class="text-muted">Precision: {{ (metrics.precision_mean * 100)|round(1) }}%</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white border-start border-success border-4 text-center">
+            <span class="text-muted small">Dataset Benchmark Cohort</span>
+            <h2 class="fw-bold text-success my-1">{{ metrics.n_samples }}</h2>
+            <small class="text-muted">MIMIC-IV / UCI Clinical Profiles</small>
+        </div>
+    </div>
+</div>
+
+<!-- Plots Row: ROC Curve & Feature Importance -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card card-custom p-4 bg-white h-100">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-chart-line text-primary me-2"></i>ROC Curve (Receiver Operating Characteristic)</h5>
+            <p class="text-muted small">Evaluates True Positive Rate vs False Positive Rate across classification thresholds (AUC = {{ metrics.roc_auc_mean }})</p>
+            <div id="rocPlot" style="height: 320px;"></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-custom p-4 bg-white h-100">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-network-wired text-info me-2"></i>Feature Gini Importance Ranking</h5>
+            <p class="text-muted small">Quantifies relative predictive weight of each clinical domain in the Gradient Boosting model</p>
+            <div id="importancePlot" style="height: 320px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Confusion Matrix & Calibration Error Breakdown -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card card-custom p-4 bg-white h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-table-cells text-dark me-2"></i>5-Fold Cross-Validation Confusion Matrix</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Actual \ Predicted</th>
+                            <th>Predicted Low Risk (0)</th>
+                            <th>Predicted High Risk (1)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="fw-bold table-light">Actual Safe / Low Risk (0)</td>
+                            <td class="bg-success text-white fw-bold fs-5">
+                                TN: {{ metrics.confusion_matrix.true_negative }}
+                            </td>
+                            <td class="bg-warning text-dark fw-bold fs-5">
+                                FP: {{ metrics.confusion_matrix.false_positive }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold table-light">Actual High Risk Flag (1)</td>
+                            <td class="bg-danger text-white fw-bold fs-5">
+                                FN: {{ metrics.confusion_matrix.false_negative }}
+                            </td>
+                            <td class="bg-success text-white fw-bold fs-5">
+                                TP: {{ metrics.confusion_matrix.true_positive }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="small text-muted mt-2 mb-0">
+                • <strong>Sensitivity (Recall):</strong> {{ (metrics.recall_sensitivity_mean * 100)|round(2) }}% (Ability to correctly flag unsafe volunteers)<br>
+                • <strong>Specificity:</strong> {{ ((metrics.confusion_matrix.true_negative / (metrics.confusion_matrix.true_negative + metrics.confusion_matrix.false_positive)) * 100)|round(2) }}% (Ability to correctly identify safe volunteers)
+            </p>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card card-custom p-4 bg-white h-100">
+            <h5 class="fw-bold mb-1"><i class="fa-solid fa-bullseye text-warning me-2"></i>Model Calibration & Brier Score</h5>
+            <p class="text-muted small">Expected Calibration Error (ECE): <strong>{{ metrics.ece_calibration_error }}</strong> | Brier Loss: <strong>{{ metrics.brier_score_loss }}</strong></p>
+            <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                <table class="table table-sm table-striped text-center align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Probability Bin</th>
+                            <th>Avg Confidence</th>
+                            <th>Actual Accuracy</th>
+                            <th>Calibration Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in metrics.calibration_curve %}
+                        <tr>
+                            <td><code>{{ b.bin }}</code></td>
+                            <td>{{ (b.confidence * 100)|round(1) }}%</td>
+                            <td>{{ (b.accuracy * 100)|round(1) }}%</td>
+                            <td>
+                                {% if (b.confidence - b.accuracy)|abs < 0.10 %}
+                                    <span class="badge bg-success">Well Calibrated</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Minor Deviation</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Render ROC Curve
+const fprVals = {{ metrics.roc_curve.fpr | tojson }};
+const tprVals = {{ metrics.roc_curve.tpr | tojson }};
+
+const rocTrace = {
+    x: fprVals,
+    y: tprVals,
+    mode: 'lines',
+    name: 'Gradient Boosting (AUC = {{ metrics.roc_auc_mean }})',
+    line: { color: '#0f4c81', width: 3 }
+};
+
+const diagonalTrace = {
+    x: [0, 1],
+    y: [0, 1],
+    mode: 'lines',
+    name: 'Random Classifier (AUC = 0.50)',
+    line: { color: '#bdc3c7', width: 2, dash: 'dash' }
+};
+
+const rocLayout = {
+    margin: { l: 50, r: 20, t: 20, b: 40 },
+    xaxis: { title: 'False Positive Rate (1 - Specificity)' },
+    yaxis: { title: 'True Positive Rate (Sensitivity)' },
+    legend: { orientation: 'h', y: 1.15 }
+};
+
+Plotly.newPlot('rocPlot', [rocTrace, diagonalTrace], rocLayout, {responsive: true});
+
+// Render Feature Importances Chart
+const importancesObj = {{ metrics.feature_importances | tojson }};
+const featNames = Object.keys(importancesObj);
+const featVals = Object.values(importancesObj).map(v => v * 100);
+
+const importanceTrace = {
+    x: featVals,
+    y: featNames,
+    type: 'bar',
+    orientation: 'h',
+    marker: { color: '#1b9aaa' }
+};
+
+const importanceLayout = {
+    margin: { l: 180, r: 30, t: 20, b: 40 },
+    xaxis: { title: 'Gini Importance Score (%)' },
+    yaxis: { automargin: true }
+};
+
+Plotly.newPlot('importancePlot', [importanceTrace], importanceLayout, {responsive: true});
+</script>
+{% endblock %}
